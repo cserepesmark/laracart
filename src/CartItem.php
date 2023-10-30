@@ -283,12 +283,21 @@ class CartItem
         return $this;
     }
 
+    /**
+     * Reason for Override: Eliminating the necessity to iterate over each quantity, especially for large datasets, to 
+     * optimize resource usage.
+     */
     public function taxSummary()
     {
         $taxed = [];
         
+        // Original value:
+        // $fixedQty = $this->qty;
+        
+        $fixedQty = 1;
+        
         // tax item by item
-        for ($qty = 0; $qty < $this->qty; $qty++) {
+        for ($qty = 0; $qty < $fixedQty; $qty++) {
             // keep track of what is discountable
             $discountable = $this->discounted[$qty] ?? 0;
             $price = ($this->taxable ? $this->price : 0);
