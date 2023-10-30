@@ -198,8 +198,13 @@ class CartItem
     {
         $total = 0;
 
+        // Original value:
+        // $fixedQty = $this->qty;
+
+        $fixedQty = 1;
+
         if ($this->active) {
-            for ($qty = 0; $qty < $this->qty; $qty++) {
+            for ($qty = 0; $qty < $fixedQty; $qty++) {
                 $total += LaraCart::formatMoney($this->subTotalPerItem(false) + array_sum($this->taxSummary()[$qty]), null, null, false);
             }
 
@@ -295,7 +300,6 @@ class CartItem
         // $fixedQty = $this->qty;
         
         $fixedQty = 1;
-        
         
         // tax item by item
         for ($qty = 0; $qty < $fixedQty; $qty++) {
