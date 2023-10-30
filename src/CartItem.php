@@ -296,6 +296,7 @@ class CartItem
         
         $fixedQty = 1;
         
+        
         // tax item by item
         for ($qty = 0; $qty < $fixedQty; $qty++) {
             // keep track of what is discountable
