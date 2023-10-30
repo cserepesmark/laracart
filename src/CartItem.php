@@ -286,6 +286,7 @@ class CartItem
     public function taxSummary()
     {
         $taxed = [];
+        
         // tax item by item
         for ($qty = 0; $qty < $this->qty; $qty++) {
             // keep track of what is discountable
