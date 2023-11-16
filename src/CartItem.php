@@ -198,16 +198,8 @@ class CartItem
     {
         $total = 0;
 
-        // Original value:
-        // $fixedQty = $this->qty;
-
-        $fixedQty = 1;
-
         if ($this->active) {
-            for ($qty = 0; $qty < $fixedQty; $qty++) {
-                $total += LaraCart::formatMoney($this->subTotal(false) + $this->qty * array_sum($this->taxSummary()[$qty]), null, null, false);
-            }
-
+            $total += LaraCart::formatMoney($this->subTotal(false) + array_sum($this->taxSummary()), null, null, false);
             $total -= $this->getDiscount(false);
 
             if ($total < 0) {
@@ -220,13 +212,7 @@ class CartItem
 
     public function taxTotal()
     {
-        $total = 0;
-
-        foreach ($this->taxSummary() as $itemSummary) {
-            $total += array_sum($itemSummary);
-        }
-
-        return $total;
+        return array_sum($this->taxSummary());
     }
 
     /**
@@ -243,9 +229,7 @@ class CartItem
 
     public function subTotalPerItem()
     {
-        $subTotal = $this->active ? ($this->price + $this->subItemsTotal()) : 0;
-
-        return $subTotal;
+        return $this->active ? ($this->price + $this->subItemsTotal()) : 0;
     }
 
     /**
@@ -295,58 +279,38 @@ class CartItem
     public function taxSummary()
     {
         $taxed = [];
-        
-        // Original value:
-        // $fixedQty = $this->qty;
-        
-        $fixedQty = 1;
-        
-        // tax item by item
-        for ($qty = 0; $qty < $fixedQty; $qty++) {
-            // keep track of what is discountable
-            $discountable = $this->discounted[$qty] ?? 0;
-            $price = ($this->taxable ? $this->price : 0);
 
-            $taxable = $price - ($discountable > 0 ? $discountable : 0);
-            // track what has been discounted so far
-            $discountable = $discountable - $price;
+        // Összegzett adószámítás
+        $totalPrice = $this->price * $this->qty;
+        $totalDiscount = array_sum($this->discounted) ?? 0;
+        $totalTaxable = $totalPrice - ($totalDiscount > 0 ? $totalDiscount : 0);
 
-            $taxed[$qty] = [];
-            if ($taxable > 0) {
-                if (!isset($taxed[$qty][(string) $this->tax])) {
-                    $taxed[$qty][(string) $this->tax] = 0;
+        if ($this->taxable && $totalTaxable > 0) {
+            $taxed[(string) $this->tax] = $totalTaxable * $this->tax;
+        }
+
+        // Sub items
+        foreach ($this->subItems as $subItem) {
+            $subItemTotalPrice = ($subItem->taxable ?? true) ? $subItem->price * ($subItem->qty ?? 1) : 0;
+            $subItemTotalTaxable = $subItemTotalPrice - ($totalDiscount > 0 ? $totalDiscount : 0);
+            $totalDiscount -= $subItemTotalPrice;
+
+            if ($subItemTotalTaxable > 0) {
+                if (!isset($taxed[(string) $subItem->tax])) {
+                    $taxed[(string) $subItem->tax] = 0;
                 }
-                $taxed[$qty][(string) $this->tax] += $taxable * $this->tax;
+                $taxed[(string) $subItem->tax] += $subItemTotalTaxable * $subItem->tax;
             }
 
-            // tax sub item item by sub item
-            foreach ($this->subItems as $subItem) {
-                $subItemTaxable = 0;
-                for ($subItemQty = 0; $subItemQty < ($subItem->qty || 1); $subItemQty++) {
-                    $subItemPrice = ($subItem->taxable ?? true) ? $subItem->price : 0;
-                    $subItemTaxable = $subItemPrice - ($discountable > 0 ? $discountable : 0);
-                    $discountable = $discountable - $subItemPrice;
-                }
-
-                if ($subItemTaxable > 0) {
-                    if (!isset($taxed[$qty][(string) $subItem->tax])) {
-                        $taxed[$qty][(string) $subItem->tax] = 0;
-                    }
-                    $taxed[$qty][(string) $subItem->tax] += $subItemTaxable * $subItem->tax;
-                }
-
-                // discount sub items ... items
-                if (isset($subItem->items)) {
-                    foreach ($subItem->items as $item) {
-                        if ($item->taxable) {
-                            foreach ($item->taxSummary() as $itemTaxSummary) {
-                                foreach ($itemTaxSummary as $taxRate => $amount) {
-                                    if (!isset($taxed[$qty][(string) $taxRate])) {
-                                        $taxed[$qty][(string) $taxRate] = 0;
-                                    }
-                                    $taxed[$qty][(string) $taxRate] += $amount;
-                                }
+            // Discount sub items
+            if (isset($subItem->items)) {
+                foreach ($subItem->items as $item) {
+                    if ($item->taxable) {
+                        foreach ($item->taxSummary() as $taxRate => $amount) {
+                            if (!isset($taxed[(string) $taxRate])) {
+                                $taxed[(string) $taxRate] = 0;
                             }
+                            $taxed[(string) $taxRate] += $amount;
                         }
                     }
                 }
