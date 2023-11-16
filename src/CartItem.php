@@ -205,7 +205,7 @@ class CartItem
 
         if ($this->active) {
             for ($qty = 0; $qty < $fixedQty; $qty++) {
-                $total += LaraCart::formatMoney($this->subTotal(false) + array_sum($this->taxSummary()[$qty]), null, null, false);
+                $total += LaraCart::formatMoney($this->subTotal(false) + $this->qty * array_sum($this->taxSummary()[$qty]), null, null, false);
             }
 
             $total -= $this->getDiscount(false);
